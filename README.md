@@ -11,4 +11,4 @@ datetime;
 cassandra.cluster import Cluster.
 
 
-#Cassandra Keyspace - Keyspace.cql
+# Cassandra Keyspace - Keyspace.cql
