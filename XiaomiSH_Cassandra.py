@@ -13,9 +13,9 @@ import json
 import datetime
 from cassandra.cluster import Cluster
 
-#Connecting to cluster
+#Connecting to cassandra cluster
 cluster = Cluster(['192.168.1.81']) #Cluster ip, can be separeted by comma.
-session = cluster.connect()
+session = cluster.connect() #Connecting
 session.set_keyspace('xsh') #Keyspace
 
 def gateway(x) :
@@ -24,20 +24,21 @@ def gateway(x) :
    session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
     VALUES (%s, %s, %s, %s)""", 
    (y['sid'], datetime.datetime.now(), y['cmd'],"Gateway"))
-   
-   print (y,"gateway") 
-
+   print (y," - gateway") 
 
 def door(x) :
    y = json.loads(x) #Load the file as json.
-   w = json.loads(y['data'])
-   print (y,"door")
-   session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
-    VALUES (%s, %s, %s, %s)""", 
-   (y['sid'], datetime.datetime.now(), w['status'],"Door"))
-   
-   
-   
+   print (y," - door")
+   if ('no_close') in x:
+       session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
+       VALUES (%s, %s, %s, %s)""", 
+       (y['sid'], datetime.datetime.now(), "still open","Door"))
+   else:
+       w = json.loads(y['data'])
+       session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
+       VALUES (%s, %s, %s, %s)""", 
+       (y['sid'], datetime.datetime.now(), w['status'],"Door"))
+
 def button(x) :
    y = json.loads(x)
    print (y)
@@ -56,17 +57,16 @@ def button(x) :
 
 def motion(x) :
    y = json.loads(x)
-   w = json.loads(y['data'])
    #there is a trick where data = 'no_motion', no status information
-   if ('no_motion') in w:
+   if ('no_motion') in x:
        session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
        VALUES (%s, %s, %s, %s)""", 
        (y['sid'], datetime.datetime.now(), "no_motion","Motion"))
    else:
+       w = json.loads(y['data'])
        session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
        VALUES (%s, %s, %s, %s)""", 
        (y['sid'], datetime.datetime.now(), w['status'],"Motion"))
-       print (y)
    print (y,"motion")
    
 #Starting UDP Multicast 
