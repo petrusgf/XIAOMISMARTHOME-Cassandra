@@ -16,6 +16,8 @@ datetime;
 cassandra.cluster import Cluster.
 
 
-# Cassandra Keyspace - Keyspace.cql
+# Keyspace.cql:
+Cassandra Keyspace
 
-# XiaomiSH_Cassandra.py - Python programa to read Xiaomi Smart Home.
+# XiaomiSH_Cassandra.py - 
+Python program to read Xiaomi Smart Home data, export as Json and write in Cassandra NoSQL.
