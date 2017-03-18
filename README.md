@@ -15,6 +15,7 @@ datetime;
 
 cassandra.cluster import Cluster.
 
+You can install all packages using "pip"
 
 # Keyspace.cql:
 Cassandra Keyspace
