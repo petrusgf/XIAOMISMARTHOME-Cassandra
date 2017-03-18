@@ -13,61 +13,60 @@ import json
 import datetime
 from cassandra.cluster import Cluster
 
-#Connecting to cassandra cluster
+#Connecting to cluster
 cluster = Cluster(['192.168.1.81']) #Cluster ip, can be separeted by comma.
-session = cluster.connect() #Connecting
+session = cluster.connect()
 session.set_keyspace('xsh') #Keyspace
 
+#Function to write cassandra cluster.
+def wcassandra(sid,action,sensor):
+    session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
+    VALUES (%s, %s, %s, %s)""", 
+    (sid, datetime.datetime.now(), action, sensor))
+
+#Function to read gateway data.
 def gateway(x) :
    y = json.loads(x) #Load the file as json.
    #Insert data on keyspace.
-   session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
-    VALUES (%s, %s, %s, %s)""", 
-   (y['sid'], datetime.datetime.now(), y['cmd'],"Gateway"))
+   wcassandra(y['sid'],y['cmd'],y['model'])
    print (y," - gateway") 
 
+# Function to read magnet sensor, in my home I'm using  in the door.
 def door(x) :
    y = json.loads(x) #Load the file as json.
    print (y," - door")
+   w = json.loads(y['data'])
    if ('no_close') in x:
        session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
        VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), "still open","Door"))
+       (y['sid'], datetime.datetime.now(), "still open","magnet"))
    else:
-       w = json.loads(y['data'])
-       session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
-       VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), w['status'],"Door"))
+       wcassandra(y['sid'],w['status'],y['model'])
 
+# Function to read button or switch sensor.  
 def button(x) :
    y = json.loads(x)
    print (y)
-   #there is a trick where heartbeat button has no 'status' information.
+   w = json.loads(y['data'])
    if ('heartbeat') not in x:
-       w = json.loads(y['data'])
-       session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
-       VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), w['status'],"Button"))       
+       wcassandra(y['sid'],w['status'],y['model'])    
    else:
        session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
        VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), 'heartbeat',"Button"))   
+       (y['sid'], datetime.datetime.now(), 'heartbeat',"switch"))   
 
-   print (y,"button") 
-
+# Function to read presence or motion sensor.     
 def motion(x) :
    y = json.loads(x)
-   #there is a trick where data = 'no_motion', no status information
+   print (y)
    if ('no_motion') in x:
        session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
        VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), "no_motion","Motion"))
+       (y['sid'], datetime.datetime.now(), "no_motion","motion"))
    else:
        w = json.loads(y['data'])
-       session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
-       VALUES (%s, %s, %s, %s)""", 
-       (y['sid'], datetime.datetime.now(), w['status'],"Motion"))
-   print (y,"motion")
+       wcassandra(y['sid'],w['status'],y['model'])
+   
    
 #Starting UDP Multicast 
 UDP_IP = "192.168.1.72" #Gateway IP
@@ -94,15 +93,14 @@ sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
  
 while True: # Starting loop
     data, addr = sock.recvfrom(SOCKET_BUFSIZE) # buffer size is 1024 bytes
-    data1=data.decode("utf-8") #converting bin to string
-    if 'f0b429b3ce83' in (data1): #Gateway SID
-        gateway(data1)
-    elif '158d00010ef090' in (data1): #Motion Sensor 
-        motion(data1)
-    elif '158d000111a5a2' in (data1): #Door/Windows Sensor
-        door(data1)
-    elif '158d0001157a0b' in (data1): #Button sensor
-        button(data1)
+    package=data.decode("utf-8") #by deafault data is read as bin , converting bin to string
     
+    if 'f0b429b3ce83' in (package): #Gateway SID
+        gateway(package)
+    elif '158d00010ef090' in (package): #Motion Sensor 
+        motion(package)
+    elif '158d000111a5a2' in (package): #Door/Windows Sensor
+        door(package)
+    elif '158d0001157a0b' in (package): #Button sensor
+        button(package)
     
-                
