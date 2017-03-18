@@ -18,7 +18,7 @@ cluster = Cluster(['192.168.1.81']) #Cluster ip, can be separeted by comma.
 session = cluster.connect()
 session.set_keyspace('xsh') #Keyspace
 
-#Function to write cassandra cluster.
+#Function to write cassandra cluster. Table name is "data"
 def wcassandra(sid,action,sensor):
     session.execute(""" INSERT INTO data (sid, datestamp, event_type, sensor)
     VALUES (%s, %s, %s, %s)""", 
